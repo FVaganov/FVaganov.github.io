@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head><style>
+  canvas { background: #333; display: block; margin: 20px auto; }
+</style></head>
+<body>
+<canvas id="game" width="480" height="640"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const player = { x: 220, y: 540, w: 40, h: 70, speed: 6 };
+const keys = {};
+let roadOffset = 0;
+let score = 0;
+const obstacles = [];
+
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function spawnObstacle() {
+  obstacles.push({
+    x: 100 + Math.floor(Math.random() * 4) * 80,
+    y: -100,
+    w: 60, h: 100,
+    color: ['#e74c3c','#f39c12','#9b59b6'][Math.floor(Math.random()*3)]
+  });
+}
+
+function update() {
+  // Управление
+  if (keys['ArrowLeft'] && player.x > 80) player.x -= player.speed;
+  if (keys['ArrowRight'] && player.x < 400 - player.w) player.x += player.speed;
+
+  // Дорога
+  roadOffset = (roadOffset + 5) % 80;
+
+  // Препятствия
+  if (Math.random() < 0.02) spawnObstacle();
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.y += 7;
+
+    // Коллизия
+    if (player.x < o.x + o.w && player.x + player.w > o.x &&
+        player.y < o.y + o.h && player.y + player.h > o.y) {
+      alert('Авария! Счёт: ' + score);
+      obstacles.length = 0;
+      score = 0;
+      return;
+    }
+
+    if (o.y > canvas.height) {
+      obstacles.splice(i, 1);
+      score += 10;
+    }
+  }
+}
+
+function draw() {
+  // Дорога
+  ctx.fillStyle = '#555';
+  ctx.fillRect(80, 0, 320, canvas.height);
+
+  // Разметка
+  ctx.fillStyle = '#fff';
+  for (let y = -80 + roadOffset; y < canvas.height; y += 80) {
+    ctx.fillRect(236, y, 8, 40);
+  }
+
+  // Обочины
+  ctx.fillStyle = '#2ecc71';
+  ctx.fillRect(0, 0, 80, canvas.height);
+  ctx.fillRect(400, 0, 80, canvas.height);
+
+  // Препятствия
+  obstacles.forEach(o => {
+    ctx.fillStyle = o.color;
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(o.x + 8, o.y + 15, o.w - 16, 25);
+    ctx.fillRect(o.x + 8, o.y + 55, o.w - 16, 25);
+  });
+
+  // Игрок
+  ctx.fillStyle = '#3498db';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = '#ecf0f1';
+  ctx.fillRect(player.x + 6, player.y + 8, player.w - 12, 20);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(player.x - 4, player.y + 10, 8, 15);
+  ctx.fillRect(player.x + player.w - 4, player.y + 10, 8, 15);
+
+  // Счёт
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText('Счёт: ' + score, 20, 40);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
